@@ -4,7 +4,7 @@ docker-get-dtr-job-logs
 
 Example usage:
 ```
-docker run -it --rm \
+docker run --rm \
   -e DTR_URL=dtr.example.com \
   -e USERNAME=username \
   -e PASSWORD=password \
