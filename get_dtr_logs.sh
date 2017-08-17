@@ -27,8 +27,15 @@ then
   exit 1
 fi
 
+if [ "${ALL_JOBS}" = true ] || [ "${ALL_JOBS}" = "1" ]
+then
+  NUM_JOBS=""
+else
+  NUM_JOBS="0"
+fi
+
 # get last job id
-LAST_JOB_ID="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0" | jq -r .jobs[0].id)"
+LAST_JOB_ID="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0" | jq -r .jobs[${NUM_JOBS}].id)"
 
 # check to see if job id returned
 if [ "${LAST_JOB_ID}" = "null" ]
@@ -37,5 +44,12 @@ then
   exit 1
 fi
 
-# get job job id from the last ${JOB_TYPE} job and send that to get the job logs
-curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${LAST_JOB_ID}/logs" | jq -r .[].Data
+for JOB in ${LAST_JOB_ID}
+do
+  echo "BEGIN job logs from ${JOB}"
+  echo "=================================================="
+  # get job job id from the last ${JOB_TYPE} job and send that to get the job logs
+  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].Data
+  echo "END job logs from ${JOB}"
+  echo "==================================================";echo
+done
