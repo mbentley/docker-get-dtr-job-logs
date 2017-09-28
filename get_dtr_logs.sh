@@ -46,10 +46,8 @@ fi
 
 for JOB in ${LAST_JOB_ID}
 do
-  echo "BEGIN job logs from ${JOB}"
-  echo "=================================================="
+  echo "====== BEGIN job logs from ${JOB} ======"
   # get job job id from the last ${JOB_TYPE} job and send that to get the job logs
   curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].Data
-  echo "END job logs from ${JOB}"
-  echo "==================================================";echo
+  echo "====== END job logs from ${JOB} ======"
 done
