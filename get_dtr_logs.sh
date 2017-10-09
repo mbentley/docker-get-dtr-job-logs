@@ -2,6 +2,12 @@
 
 set -e
 
+# check to see if show debug info
+if [ "${DEBUG}" = true ] || [ "${DEBUG}" = "1" ]
+then
+  set -x
+fi
+
 # make sure all variable have been provided
 if [ -z "${DTR_URL}" ]
 then

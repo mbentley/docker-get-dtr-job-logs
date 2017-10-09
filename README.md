@@ -11,6 +11,7 @@ docker run --rm \
   -e JOB_TYPE=gc \
   -e ALL_JOBS=false \
   -e JOB_INFO=false \
+  -e DEBUG=false \
   mbentley/get-dtr-job-logs
 ```
 
