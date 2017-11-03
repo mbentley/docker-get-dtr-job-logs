@@ -34,27 +34,22 @@ then
   exit 1
 fi
 
-# get job info
-JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0")"
+JOB_LIMIT="${JOB_LIMIT:-10}"
+JOB_INFO="${JOB_INFO:-false}"
 
-# check to see if we should query for all jobs or just the last
-if [ "${ALL_JOBS}" = true ] || [ "${ALL_JOBS}" = "1" ]
-then
-  NUM_JOBS=""
-else
-  NUM_JOBS="0"
-fi
+# get job info
+JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}")"
 
 # check to see if we should return a list of the jobs or get the logs for the jobs
 if [ "${JOB_INFO}" = true ] || [ "${JOB_INFO}" = "1" ]
 then
   # display info about matching jobs
-  echo "${JOBS}" | jq -r '[ .jobs['${NUM_JOBS}'] ]'
+  echo "${JOBS}"
   exit 0
 fi
 
 # get job id(s)
-JOB_IDS="$(echo "${JOBS}" | jq -r .jobs[${NUM_JOBS}].id)"
+JOB_IDS="$(echo "${JOBS}" | jq -r .jobs[].id)"
 
 # check to see if job id returned null
 if [ "${JOB_IDS}" = "null" ]
