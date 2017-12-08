@@ -10,14 +10,14 @@ docker run --rm \
   -e PASSWORD=password \
   -e JOB_TYPE=gc \
   -e JOB_LIMIT=10 \
-  -e JOB_INFO=false \
+  -e JOB_INFO_ONLY=false \
   -e DEBUG=false \
   mbentley/get-dtr-job-logs
 ```
 
 The following environment variables are required: `DTR_URL`, `USERNAME`, `PASSWORD`, `JOB_TYPE`. The job type (`JOB_TYPE`) can be looked up using the [list of available types from the DTR docs](https://docs.docker.com/datacenter/dtr/2.3/guides/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types).  You may also use `any` to get logs from all jobs.
 
-If you wish to only have the high level job information returned, utilize `-e JOB_INFO=true`.  For example, to return the job info from the last job ran of any type:
+If you wish to only have the high level job information returned, utilize `-e JOB_INFO_ONLY=true`.  For example, to return the job info from the last job ran of any type:
 
 
 ```
@@ -27,7 +27,7 @@ $ docker run --rm \
   -e PASSWORD=password \
   -e JOB_TYPE=any \
   -e JOB_LIMIT=1 \
-  -e JOB_INFO=true \
+  -e JOB_INFO_ONLY=true \
   mbentley/get-dtr-job-logs
 [
   {
@@ -46,4 +46,17 @@ $ docker run --rm \
     "stopTimeout": "5s"
   }
 ]
+```
+
+Get a specific job id's logs:
+
+```
+docker run --rm \
+  -e DTR_URL=dtr.example.com \
+  -e USERNAME=username \
+  -e PASSWORD=password \
+  -e JOB_INFO_ONLY=false \
+  -e DEBUG=false \
+  -e JOB_ID=b4c199b8-3878-4955-9c0c-8d9eec15af9c \
+  mbentley/get-dtr-job-logs
 ```

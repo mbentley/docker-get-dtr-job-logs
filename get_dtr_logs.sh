@@ -35,13 +35,22 @@ then
 fi
 
 JOB_LIMIT="${JOB_LIMIT:-10}"
-JOB_INFO="${JOB_INFO:-false}"
+JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
+JOB_ID="${JOB_ID:-}"
 
 # get job info
-JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}")"
+if [ -z "${JOB_ID}" ]
+then
+  # get job info based off of JOB_LIMIT, JOB_TYPE
+  JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" | jq '.jobs|.[]')"
+else
+  # get job info based off of JOB_ID
+  echo "Ignoring values for JOB_LIMIT and JOB_TYPE as a single JOB_ID was provded"
+  JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}")"
+fi
 
 # check to see if we should return a list of the jobs or get the logs for the jobs
-if [ "${JOB_INFO}" = true ] || [ "${JOB_INFO}" = "1" ]
+if [ "${JOB_INFO_ONLY}" = true ] || [ "${JOB_INFO_ONLY}" = "1" ]
 then
   # display info about matching jobs
   echo "${JOBS}"
@@ -49,7 +58,7 @@ then
 fi
 
 # get job id(s)
-JOB_IDS="$(echo "${JOBS}" | jq -r .jobs[].id)"
+JOB_IDS="$(echo "${JOBS}" | jq -r .id)"
 
 # check to see if job id returned null
 if [ "${JOB_IDS}" = "null" ]
