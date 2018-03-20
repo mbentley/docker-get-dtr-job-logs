@@ -34,6 +34,7 @@ then
   exit 1
 fi
 
+DTR_VERSION="$(curl -sk "https://${DTR_URL}/api/v0/docs.json" | jq -r .info.version)"
 JOB_LIMIT="${JOB_LIMIT:-10}"
 JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
 JOB_ID="${JOB_ID:-}"
@@ -76,6 +77,14 @@ do
   echo
 
   # get job job id from the last ${JOB_TYPE} job and send that to get the job logs
-  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].Data
+  if [ "$(echo "${DTR_VERSION}" | awk -F '.' '{print $1}')" -ge "2" ] && [ "$(echo "${DTR_VERSION}" | awk -F '.' '{print $2}')" -ge "5" ]
+  then
+    # DTR 2.5 and above uses lower case
+    DATA="data"
+  else
+    # DTR 2.4 and below use upper case
+    DATA="Data"
+  fi
+  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].${DATA}
   echo "====== END job logs from ${JOB} ======"; echo
 done
