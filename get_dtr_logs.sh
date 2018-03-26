@@ -30,7 +30,7 @@ fi
 if [ -z "${JOB_TYPE}" ]
 then
   echo "Missing JOB_TYPE environment variable"
-  echo "For a list of job types, see https://docs.docker.com/datacenter/dtr/2.3/guides/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types"
+  echo "For a list of job types, see https://docs.docker.com/datacenter/dtr/2.4/guides/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types"
   exit 1
 fi
 
