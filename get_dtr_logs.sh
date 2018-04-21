@@ -44,9 +44,9 @@ fi
 # get cron info
 if [ "${SHOW_CRONS}" = "true" ]
 then
-  echo "====== BEGIN cron list ======"
+  echo "====== BEGIN scheduled cron list ======"
   curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" | jq '.crons|.[]'
-  echo "====== END cron list ======"; echo
+  echo "====== END scheduled cron list ======"; echo
   exit 0
 fi
 
