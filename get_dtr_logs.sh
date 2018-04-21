@@ -2,6 +2,13 @@
 
 set -e
 
+# set defaults
+SHOW_CRONS="${SHOW_CRONS:-false}"
+JOB_LIMIT="${JOB_LIMIT:-10}"
+JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
+JOB_ID="${JOB_ID:-}"
+JOB_TYPE="${JOB_TYPE:-any}"
+
 # check to see if show debug info
 if [ "${DEBUG}" = true ] || [ "${DEBUG}" = "1" ]
 then
@@ -27,17 +34,24 @@ then
   exit 1
 fi
 
-if [ -z "${JOB_TYPE}" ]
+if [ -z "${JOB_TYPE}" ] && [ -z "${JOB_ID}" ]
 then
   echo "Missing JOB_TYPE environment variable"
-  echo "For a list of job types, see https://docs.docker.com/datacenter/dtr/2.4/guides/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types"
+  echo "For a list of job types, see https://docs.docker.com/ee/dtr/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types"
   exit 1
 fi
 
+# get cron info
+if [ "${SHOW_CRONS}" = "true" ]
+then
+  echo "====== BEGIN scheduled cron list ======"
+  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" | jq '.crons|.[]'
+  echo "====== END scheduled cron list ======"; echo
+  exit 0
+fi
+
+# find the DTR version from the API docs
 DTR_VERSION="$(curl -sk "https://${DTR_URL}/api/v0/docs.json" | jq -r .info.version)"
-JOB_LIMIT="${JOB_LIMIT:-10}"
-JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
-JOB_ID="${JOB_ID:-}"
 
 # get job info
 if [ -z "${JOB_ID}" ]
@@ -46,8 +60,14 @@ then
   JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" | jq '.jobs|.[]')"
 else
   # get job info based off of JOB_ID
-  echo "Ignoring values for JOB_LIMIT and JOB_TYPE as a single JOB_ID was provded"
-  JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}")"
+  JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" || true)"
+
+  # check for an error
+  if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code')" = "NO_SUCH_JOB" ]
+  then
+    echo "Error: $(echo "${JOBS}" | jq -r '.errors|.[].message') (${JOB_ID})"
+    exit 1
+  fi
 fi
 
 # check to see if we should return a list of the jobs or get the logs for the jobs
