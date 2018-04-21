@@ -25,7 +25,7 @@ If you wish to only have the high level job information returned, utilize `-e JO
 
 
 ```
-$ docker run --rm \
+docker run --rm \
   -e DTR_URL=dtr.example.com \
   -e USERNAME=username \
   -e PASSWORD=password \
@@ -175,4 +175,3 @@ docker run --rm \
 ```
 
 </details>
-
