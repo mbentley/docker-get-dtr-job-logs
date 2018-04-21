@@ -61,9 +61,11 @@ then
 else
   # get job info based off of JOB_ID
   JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" || true)"
-  if [ -z "${JOBS}" ]
+
+  # check for an error
+  if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code')" = "NO_SUCH_JOB" ]
   then
-    echo "Error: JOB_ID (${JOB_ID}) not found"
+    echo "Error: $(echo "${JOBS}" | jq -r '.errors|.[].message') (${JOB_ID})"
     exit 1
   fi
 fi

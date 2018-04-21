@@ -68,13 +68,30 @@ docker run --rm \
   -e PASSWORD=password \
   -e JOB_INFO_ONLY=false \
   -e DEBUG=false \
-  -e JOB_ID=b4c199b8-3878-4955-9c0c-8d9eec15af9c \
+  -e JOB_ID=252b3b26-1149-46c1-9e20-4849f9ec97a3 \
   mbentley/get-dtr-job-logs
 ```
 
 <details><summary>Example output</summary>
 
 ```
+====== BEGIN job logs from 252b3b26-1149-46c1-9e20-4849f9ec97a3 ======
+{
+  "id": "252b3b26-1149-46c1-9e20-4849f9ec97a3",
+  "retryFromID": "252b3b26-1149-46c1-9e20-4849f9ec97a3",
+  "workerID": "f97ebb52f0f6",
+  "status": "done",
+  "scheduledAt": "2018-04-21T09:45:00Z",
+  "lastUpdated": "2018-04-21T09:45:02.709Z",
+  "action": "poll_mirror",
+  "retriesLeft": 0,
+  "retriesTotal": 0,
+  "capacityMap": null,
+  "parameters": null,
+  "deadline": "",
+  "stopTimeout": ""
+}
+
 time="2018-04-21T09:45:01Z" level=info msg="Establishing connection with Rethinkdb"
 time="2018-04-21T09:45:01Z" level=info msg="Establishing connection with Rethinkdb"
 time="2018-04-21T09:45:01Z" level=info msg="getting poll mirror lock" retryFromID=252b3b26-1149-46c1-9e20-4849f9ec97a3
@@ -88,6 +105,7 @@ time="2018-04-21T09:45:02Z" level=info msg="Successfully mirrored remote tag htt
 time="2018-04-21T09:45:02Z" level=info msg="Finished evaluating policy ID 643a6d8c-c681-4d4f-86d3-9f5bc5fe5d48"
 time="2018-04-21T09:45:02Z" level=info msg=unlocking retryFromID=252b3b26-1149-46c1-9e20-4849f9ec97a3
 time="2018-04-21T09:45:02Z" level=info msg="unlock done" retryFromID=252b3b26-1149-46c1-9e20-4849f9ec97a3
+====== END job logs from 252b3b26-1149-46c1-9e20-4849f9ec97a3 ======
 ```
 
 </details>
