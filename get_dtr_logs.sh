@@ -38,6 +38,16 @@ DTR_VERSION="$(curl -sk "https://${DTR_URL}/api/v0/docs.json" | jq -r .info.vers
 JOB_LIMIT="${JOB_LIMIT:-10}"
 JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
 JOB_ID="${JOB_ID:-}"
+SHOW_CRONS="${SHOW_CRONS:-false}"
+
+# get cron info
+if [ "${SHOW_CRONS}" = "true" ]
+then
+  echo "====== BEGIN cron list ======"
+  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" | jq '.crons|.[]'
+  echo "====== END cron list ======"; echo
+  exit 0
+fi
 
 # get job info
 if [ -z "${JOB_ID}" ]
