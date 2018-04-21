@@ -2,15 +2,16 @@ docker-get-dtr-job-logs
 =======================
 
 
-Example usage:
+Example usage with all environment variables at their default values:
 ```
 docker run --rm \
   -e DTR_URL=dtr.example.com \
   -e USERNAME=username \
   -e PASSWORD=password \
-  -e JOB_TYPE=gc \
+  -e JOB_TYPE=any \
   -e JOB_LIMIT=10 \
   -e JOB_INFO_ONLY=false \
+  -e JOB_ID="" \
   -e SHOW_CRONS=false \
   -e DEBUG=false \
   mbentley/get-dtr-job-logs
@@ -18,18 +19,95 @@ docker run --rm \
 
 The following environment variables are required: `DTR_URL`, `USERNAME`, `PASSWORD`, `JOB_TYPE`. The job type (`JOB_TYPE`) can be looked up using the [list of available types from the DTR docs](https://docs.docker.com/ee/dtr/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types).  You may also use `any` to get logs from all jobs.  `PASSWORD` can also be an [access token](https://docs.docker.com/ee/dtr/user/access-tokens/).
 
-You can use `SHOW_CRONS=true` to also list the schedule cron jobs.  Crons run as jobs; this will only display the cron schedules for each type of cron job:
 
-<details/>
-  <summary>Example:</summary><p>
----
+### Show Job Info Only
+If you wish to only have the high level job information returned, utilize `-e JOB_INFO_ONLY=true`.  For example, to return the job info from the last job ran of any type:
+
+
 ```
 $ docker run --rm \
   -e DTR_URL=dtr.example.com \
   -e USERNAME=username \
   -e PASSWORD=password \
+  -e JOB_TYPE=any \
+  -e JOB_LIMIT=1 \
+  -e JOB_INFO_ONLY=true \
+  mbentley/get-dtr-job-logs
+```
+<details><summary>Example output</summary>
+
+```
+[
+  {
+    "id": "a261713a-9514-43f9-a7e5-50e7a9fa1d48",
+    "retryFromID": "a261713a-9514-43f9-a7e5-50e7a9fa1d48",
+    "workerID": "0000000000e2",
+    "status": "done",
+    "scheduledAt": "2017-10-02T16:54:34.717Z",
+    "lastUpdated": "2017-10-02T16:58:34.727Z",
+    "action": "nautilus_update_db",
+    "retriesLeft": 0,
+    "retriesTotal": 0,
+    "capacityMap": null,
+    "parameters": null,
+    "deadline": "",
+    "stopTimeout": "5s"
+  }
+]
+```
+
+</details>
+
+### Get jobs from a specific job ID:
+
+
+```
+docker run --rm \
+  -e DTR_URL=dtr.example.com \
+  -e USERNAME=username \
+  -e PASSWORD=password \
+  -e JOB_INFO_ONLY=false \
+  -e DEBUG=false \
+  -e JOB_ID=b4c199b8-3878-4955-9c0c-8d9eec15af9c \
+  mbentley/get-dtr-job-logs
+```
+
+<details><summary>Example output</summary>
+
+```
+time="2018-04-21T09:45:01Z" level=info msg="Establishing connection with Rethinkdb"
+time="2018-04-21T09:45:01Z" level=info msg="Establishing connection with Rethinkdb"
+time="2018-04-21T09:45:01Z" level=info msg="getting poll mirror lock" retryFromID=252b3b26-1149-46c1-9e20-4849f9ec97a3
+time="2018-04-21T09:45:01Z" level=info msg="writing out configs and watching for changes"
+time="2018-04-21T09:45:01Z" level=info msg="watching configs"
+time="2018-04-21T09:45:01Z" level=info msg="watching for changes to configtracker.configSpec{src:\"license.json\", writer:(configtracker.WriterFunc)(0xbb1f70), templateFunc:(configtracker.TemplateFunc)(0xb1fe90), cacheKey:\"66490b83-102d-490d-94b0-182d753e37d8\"}"
+time="2018-04-21T09:45:01Z" level=info msg="Caching new license"
+time="2018-04-21T09:45:01Z" level=info msg="Evaluating policy ID 643a6d8c-c681-4d4f-86d3-9f5bc5fe5d48"
+time="2018-04-21T09:45:02Z" level=info msg="Mirroring remote tag https://index.docker.io/mbentley/nginx:latest to local tag admin/mirror:latest with policy ID 643a6d8c-c681-4d4f-86d3-9f5bc5fe5d48"
+time="2018-04-21T09:45:02Z" level=info msg="Successfully mirrored remote tag https://index.docker.io/mbentley/nginx:latest to local tag admin/mirror:latest with policy ID 643a6d8c-c681-4d4f-86d3-9f5bc5fe5d48"
+time="2018-04-21T09:45:02Z" level=info msg="Finished evaluating policy ID 643a6d8c-c681-4d4f-86d3-9f5bc5fe5d48"
+time="2018-04-21T09:45:02Z" level=info msg=unlocking retryFromID=252b3b26-1149-46c1-9e20-4849f9ec97a3
+time="2018-04-21T09:45:02Z" level=info msg="unlock done" retryFromID=252b3b26-1149-46c1-9e20-4849f9ec97a3
+```
+
+</details>
+
+### Show Cron Job Schedule
+
+You can use `SHOW_CRONS=true` to also list the schedule cron jobs.  Crons run as jobs; this will only display the cron schedules for each type of cron job:
+
+```
+docker run --rm \
+  -e DTR_URL=dtr.example.com \
+  -e USERNAME=username \
+  -e PASSWORD=password \
   -e SHOW_CRONS=true \
   mbentley/get-dtr-job-logs
+```
+
+<details><summary>Example output</summary>
+
+```
 ====== BEGIN cron list ======
 {
   "id": "6ec4f90a-15b5-470d-9a3b-40d8eaa82cc7",
@@ -77,48 +155,6 @@ $ docker run --rm \
 }
 ====== END cron list ======
 ```
----
-</p></details>
-If you wish to only have the high level job information returned, utilize `-e JOB_INFO_ONLY=true`.  For example, to return the job info from the last job ran of any type:
 
+</details>
 
-```
-$ docker run --rm \
-  -e DTR_URL=dtr.example.com \
-  -e USERNAME=username \
-  -e PASSWORD=password \
-  -e JOB_TYPE=any \
-  -e JOB_LIMIT=1 \
-  -e JOB_INFO_ONLY=true \
-  mbentley/get-dtr-job-logs
-[
-  {
-    "id": "a261713a-9514-43f9-a7e5-50e7a9fa1d48",
-    "retryFromID": "a261713a-9514-43f9-a7e5-50e7a9fa1d48",
-    "workerID": "0000000000e2",
-    "status": "done",
-    "scheduledAt": "2017-10-02T16:54:34.717Z",
-    "lastUpdated": "2017-10-02T16:58:34.727Z",
-    "action": "nautilus_update_db",
-    "retriesLeft": 0,
-    "retriesTotal": 0,
-    "capacityMap": null,
-    "parameters": null,
-    "deadline": "",
-    "stopTimeout": "5s"
-  }
-]
-```
-
-Get a specific job id's logs:
-
-```
-docker run --rm \
-  -e DTR_URL=dtr.example.com \
-  -e USERNAME=username \
-  -e PASSWORD=password \
-  -e JOB_INFO_ONLY=false \
-  -e DEBUG=false \
-  -e JOB_ID=b4c199b8-3878-4955-9c0c-8d9eec15af9c \
-  mbentley/get-dtr-job-logs
-```
