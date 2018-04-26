@@ -3,6 +3,18 @@
 set -e
 set -o pipefail
 
+# create a temporary file for capturing stderr
+TEMP_FILE="$(mktemp)"
+
+exit_cleanup() {
+  # remove temp file, if it exists
+  if [ -f "${TEMP_FILE}" ]
+  then
+    rm "${TEMP_FILE}"
+  fi
+  exit "${1}"
+}
+
 curl_failure() {
   echo "Error: curl to '${1}' failed."
   echo ""
@@ -11,11 +23,8 @@ curl_failure() {
   cat "${TEMP_FILE}"
   echo "========================================"
   echo ""
-  rm "${TEMP_FILE}"
-  exit 1
+  exit_cleanup 1
 }
-
-#2> "${TEMP_FILE}"
 
 # set defaults
 SHOW_CRONS="${SHOW_CRONS:-false}"
@@ -23,9 +32,6 @@ JOB_LIMIT="${JOB_LIMIT:-10}"
 JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
 JOB_ID="${JOB_ID:-}"
 JOB_TYPE="${JOB_TYPE:-any}"
-
-# create a temporary file for capturing stderr
-TEMP_FILE="$(mktemp)"
 
 # check to see if show debug info
 if [ "${DEBUG}" = true ] || [ "${DEBUG}" = "1" ]
@@ -37,26 +43,26 @@ fi
 if [ -z "${DTR_URL}" ]
 then
   echo "Missing DTR_URL environment variable"
-  exit 1
+  exit_cleanup 1
 fi
 
 if [ -z "${USERNAME}" ]
 then
   echo "Missing USERNAME environment variable"
-  exit 1
+  exit_cleanup 1
 fi
 
 if [ -z "${PASSWORD}" ]
 then
   echo "Missing PASSWORD environment variable"
-  exit 1
+  exit_cleanup 1
 fi
 
 if [ -z "${JOB_TYPE}" ] && [ -z "${JOB_ID}" ]
 then
   echo "Missing JOB_TYPE environment variable"
   echo "For a list of job types, see https://docs.docker.com/ee/dtr/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types"
-  exit 1
+  exit_cleanup 1
 fi
 
 # get cron info
@@ -65,7 +71,7 @@ then
   echo "====== BEGIN scheduled cron list ======"
   (curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" 2> "${TEMP_FILE}" | jq '.crons|.[]') || curl_failure "https://${DTR_URL}/api/v0/crons"
   echo "====== END scheduled cron list ======"; echo
-  exit 0
+  exit_cleanup 0
 fi
 
 # find the DTR version from the API docs
@@ -84,7 +90,7 @@ else
   if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code' 2>/dev/null)" = "NO_SUCH_JOB" ]
   then
     echo "Error: $(echo "${JOBS}" | jq -r '.errors|.[].message') (${JOB_ID})"
-    exit 1
+    exit_cleanup 1
   fi
 fi
 
@@ -92,7 +98,7 @@ fi
 if [ -z "${JOBS}" ]
 then
   echo "Warning: No jobs returned of type ${JOB_TYPE}"
-  exit 0
+  exit_cleanup 0
 fi
 
 # check to see if we should return a list of the jobs or get the logs for the jobs
@@ -100,7 +106,7 @@ if [ "${JOB_INFO_ONLY}" = true ] || [ "${JOB_INFO_ONLY}" = "1" ]
 then
   # display info about matching jobs
   echo "${JOBS}"
-  exit 0
+  exit_cleanup 0
 fi
 
 # get job id(s)
@@ -110,7 +116,7 @@ JOB_IDS="$(echo "${JOBS}" | jq -r .id)"
 if [ "${JOB_IDS}" = "null" ]
 then
   echo "No jobs found of type '${JOB_TYPE}'"
-  exit 1
+  exit_cleanup 1
 fi
 
 # get the job logs for each job
@@ -141,3 +147,5 @@ do
   fi
   echo "====== END job logs from ${JOB} ======"; echo
 done
+
+exit_cleanup 0
