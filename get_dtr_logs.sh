@@ -4,9 +4,18 @@ set -e
 set -o pipefail
 
 curl_failure() {
-  echo "Error: curl to '${1}' failed. Run with '-e DEBUG=true' for additional detail"
+  echo "Error: curl to '${1}' failed."
+  echo ""
+  echo "curl error output:"
+  echo "========================================"
+  cat "${TEMP_FILE}"
+  echo "========================================"
+  echo ""
+  rm "${TEMP_FILE}"
   exit 1
 }
+
+#2> "${TEMP_FILE}"
 
 # set defaults
 SHOW_CRONS="${SHOW_CRONS:-false}"
@@ -14,6 +23,9 @@ JOB_LIMIT="${JOB_LIMIT:-10}"
 JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
 JOB_ID="${JOB_ID:-}"
 JOB_TYPE="${JOB_TYPE:-any}"
+
+# create a temporary file for capturing stderr
+TEMP_FILE="$(mktemp)"
 
 # check to see if show debug info
 if [ "${DEBUG}" = true ] || [ "${DEBUG}" = "1" ]
@@ -51,22 +63,22 @@ fi
 if [ "${SHOW_CRONS}" = "true" ]
 then
   echo "====== BEGIN scheduled cron list ======"
-  (curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" | jq '.crons|.[]') || curl_failure "https://${DTR_URL}/api/v0/crons"
+  (curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" 2> "${TEMP_FILE}" | jq '.crons|.[]') || curl_failure "https://${DTR_URL}/api/v0/crons"
   echo "====== END scheduled cron list ======"; echo
   exit 0
 fi
 
 # find the DTR version from the API docs
-DTR_VERSION=$(curl -sk "https://${DTR_URL}/api/v0/docs.json" | jq -r .info.version) || curl_failure "https://${DTR_URL}/api/v0/docs.json"
+DTR_VERSION=$(curl -kvsS "https://${DTR_URL}/api/v0/docs.json" 2> "${TEMP_FILE}" | jq -r .info.version) || curl_failure "https://${DTR_URL}/api/v0/docs.json"
 
 # get job info
 if [ -z "${JOB_ID}" ]
 then
   # get job info based off of JOB_LIMIT, JOB_TYPE
-  JOBS=$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" | jq '.jobs|.[]') || curl_failure "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}"
+  JOBS=$(curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" 2> "${TEMP_FILE}" | jq '.jobs|.[]') || curl_failure "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}"
 else
   # get job info based off of JOB_ID
-  JOBS=$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}") || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB_ID}"
+  JOBS=$(curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" 2> "${TEMP_FILE}") || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB_ID}"
 
   # check for an error
   if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code' 2>/dev/null)" = "NO_SUCH_JOB" ]
@@ -106,7 +118,7 @@ for JOB in ${JOB_IDS}
 do
   echo "====== BEGIN job logs from ${JOB} ======"
   # output info about the job
-  (curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}" | jq .) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}"
+  (curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}" 2> "${TEMP_FILE}" | jq .) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}"
   echo
 
   # get job job id from the last ${JOB_TYPE} job and send that to get the job logs
@@ -118,7 +130,7 @@ do
     # DTR 2.4 and below use upper case
     DATA="Data"
   fi
-  JOB_LOGS=$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].${DATA}) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}/logs"
+  JOB_LOGS=$(curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" 2> "${TEMP_FILE}" | jq -r .[].${DATA}) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}/logs"
 
   # check to see if no job logs were returned
   if [ -z "${JOB_LOGS}" ]
