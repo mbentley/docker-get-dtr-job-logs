@@ -63,11 +63,18 @@ else
   JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" || true)"
 
   # check for an error
-  if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code')" = "NO_SUCH_JOB" ]
+  if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code' 2>/dev/null)" = "NO_SUCH_JOB" ]
   then
     echo "Error: $(echo "${JOBS}" | jq -r '.errors|.[].message') (${JOB_ID})"
     exit 1
   fi
+fi
+
+# check to see if no jobs were returned
+if [ -z "${JOBS}" ]
+then
+  echo "Warning: No jobs returned of type ${JOB_TYPE}"
+  exit 0
 fi
 
 # check to see if we should return a list of the jobs or get the logs for the jobs
@@ -105,6 +112,14 @@ do
     # DTR 2.4 and below use upper case
     DATA="Data"
   fi
-  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].${DATA}
+  JOB_LOGS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].${DATA})"
+
+  # check to see if no job logs were returned
+  if [ -z "${JOB_LOGS}" ]
+  then
+    echo "Warning: No job logs returned from ${JOB}"
+  else
+    echo "${JOB_LOGS}"
+  fi
   echo "====== END job logs from ${JOB} ======"; echo
 done
