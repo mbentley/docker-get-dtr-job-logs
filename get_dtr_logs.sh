@@ -1,6 +1,12 @@
 #!/bin/sh
 
 set -e
+set -o pipefail
+
+curl_failure() {
+  echo "Error: curl to '${1}' failed. Run with '-e DEBUG=true' for additional detail"
+  exit 1
+}
 
 # set defaults
 SHOW_CRONS="${SHOW_CRONS:-false}"
@@ -45,22 +51,22 @@ fi
 if [ "${SHOW_CRONS}" = "true" ]
 then
   echo "====== BEGIN scheduled cron list ======"
-  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" | jq '.crons|.[]'
+  (curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" | jq '.crons|.[]') || curl_failure "/api/v0/crons"
   echo "====== END scheduled cron list ======"; echo
   exit 0
 fi
 
 # find the DTR version from the API docs
-DTR_VERSION="$(curl -sk "https://${DTR_URL}/api/v0/docs.json" | jq -r .info.version)"
+DTR_VERSION=$(curl -sk "https://${DTR_URL}/api/v0/docs.json" | jq -r .info.version) || curl_failure "/api/v0/docs.json"
 
 # get job info
 if [ -z "${JOB_ID}" ]
 then
   # get job info based off of JOB_LIMIT, JOB_TYPE
-  JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" | jq '.jobs|.[]')"
+  JOBS=$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" | jq '.jobs|.[]') || curl_failure "/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}"
 else
   # get job info based off of JOB_ID
-  JOBS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" || true)"
+  JOBS=$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}") || curl_failure "/api/v0/jobs/${JOB_ID}"
 
   # check for an error
   if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code' 2>/dev/null)" = "NO_SUCH_JOB" ]
@@ -100,7 +106,7 @@ for JOB in ${JOB_IDS}
 do
   echo "====== BEGIN job logs from ${JOB} ======"
   # output info about the job
-  curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}" | jq .
+  (curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}" | jq .) || curl_failure "/api/v0/jobs/${JOB}"
   echo
 
   # get job job id from the last ${JOB_TYPE} job and send that to get the job logs
@@ -112,7 +118,7 @@ do
     # DTR 2.4 and below use upper case
     DATA="Data"
   fi
-  JOB_LOGS="$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].${DATA})"
+  JOB_LOGS=$(curl -ks -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" | jq -r .[].${DATA}) || curl_failure "/api/v0/jobs/${JOB}/logs"
 
   # check to see if no job logs were returned
   if [ -z "${JOB_LOGS}" ]
