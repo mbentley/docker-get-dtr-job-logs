@@ -32,6 +32,7 @@ JOB_LIMIT="${JOB_LIMIT:-10}"
 JOB_INFO_ONLY="${JOB_INFO_ONLY:-false}"
 JOB_ID="${JOB_ID:-}"
 JOB_TYPE="${JOB_TYPE:-any}"
+RUNNING="${RUNNING:-any}"
 
 # check to see if show debug info
 if [ "${DEBUG}" = true ] || [ "${DEBUG}" = "1" ]
@@ -69,22 +70,22 @@ fi
 if [ "${SHOW_CRONS}" = "true" ]
 then
   echo "====== BEGIN scheduled cron list ======"
-  (curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" 2> "${TEMP_FILE}" | jq '.crons|.[]') || curl_failure "https://${DTR_URL}/api/v0/crons"
+  (curl -kvsSf -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/crons" 2> "${TEMP_FILE}" | jq '.crons|.[]') || curl_failure "https://${DTR_URL}/api/v0/crons"
   echo "====== END scheduled cron list ======"; echo
   exit_cleanup 0
 fi
 
 # find the DTR version from the API docs
-DTR_VERSION=$(curl -kvsS "https://${DTR_URL}/api/v0/docs.json" 2> "${TEMP_FILE}" | jq -r .info.version) || curl_failure "https://${DTR_URL}/api/v0/docs.json"
+DTR_VERSION=$(curl -kvsSf "https://${DTR_URL}/api/v0/docs.json" 2> "${TEMP_FILE}" | jq -r .info.version) || curl_failure "https://${DTR_URL}/api/v0/docs.json"
 
 # get job info
 if [ -z "${JOB_ID}" ]
 then
   # get job info based off of JOB_LIMIT, JOB_TYPE
-  JOBS=$(curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}" 2> "${TEMP_FILE}" | jq '.jobs|.[]') || curl_failure "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=any&start=0&limit=${JOB_LIMIT}"
+  JOBS=$(curl -kvsSf -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=${RUNNING}&start=0&limit=${JOB_LIMIT}" 2> "${TEMP_FILE}" | jq '.jobs|.[]') || curl_failure "https://${DTR_URL}/api/v0/jobs?action=${JOB_TYPE}&worker=any&running=${RUNNING}&start=0&limit=${JOB_LIMIT}"
 else
   # get job info based off of JOB_ID
-  JOBS=$(curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" 2> "${TEMP_FILE}") || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB_ID}"
+  JOBS=$(curl -kvsSf -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB_ID}" 2> "${TEMP_FILE}") || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB_ID}"
 
   # check for an error
   if [ "$(echo "${JOBS}" | jq -r '.errors|.[].code' 2>/dev/null)" = "NO_SUCH_JOB" ]
@@ -97,7 +98,7 @@ fi
 # check to see if no jobs were returned
 if [ -z "${JOBS}" ]
 then
-  echo "Warning: No jobs returned of type ${JOB_TYPE}"
+  echo "Warning: No jobs returned of 'action=${JOB_TYPE}', 'running=${RUNNING}', and 'limit=${JOB_LIMIT}'"
   exit_cleanup 0
 fi
 
@@ -124,7 +125,7 @@ for JOB in ${JOB_IDS}
 do
   echo "====== BEGIN job logs from ${JOB} ======"
   # output info about the job
-  (curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}" 2> "${TEMP_FILE}" | jq .) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}"
+  (curl -kvsSf -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}" 2> "${TEMP_FILE}" | jq .) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}"
   echo
 
   # get job job id from the last ${JOB_TYPE} job and send that to get the job logs
@@ -136,7 +137,7 @@ do
     # DTR 2.4 and below use upper case
     DATA="Data"
   fi
-  JOB_LOGS=$(curl -kvsS -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" 2> "${TEMP_FILE}" | jq -r .[].${DATA}) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}/logs"
+  JOB_LOGS=$(curl -kvsSf -X GET --header "Accept: application/json" -u "${USERNAME}:${PASSWORD}" "https://${DTR_URL}/api/v0/jobs/${JOB}/logs" 2> "${TEMP_FILE}" | jq -r .[].${DATA}) || curl_failure "https://${DTR_URL}/api/v0/jobs/${JOB}/logs"
 
   # check to see if no job logs were returned
   if [ -z "${JOB_LOGS}" ]
