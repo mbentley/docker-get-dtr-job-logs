@@ -62,7 +62,7 @@ fi
 if [ -z "${JOB_TYPE}" ] && [ -z "${JOB_ID}" ]
 then
   echo "Missing JOB_TYPE environment variable"
-  echo "For a list of job types, see https://docs.docker.com/ee/dtr/admin/monitor-and-troubleshoot/troubleshoot-batch-jobs/#job-types"
+  echo "For a list of job types, see https://docs.docker.com/ee/dtr/admin/manage-jobs/job-queue/#job-types"
   exit_cleanup 1
 fi
 
